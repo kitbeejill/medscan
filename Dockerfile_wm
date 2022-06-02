@@ -1,0 +1,22 @@
+ARG WM_BASE_IMAGE_TAG
+FROM artifactory.medline.com/medline-docker/java/openjdk:$WM_BASE_IMAGE_TAG
+LABEL MAINTAINER="Ecommerce B2B"
+LABEL EMAIL="ECOMOperations@medline.com"
+
+ARG GID=5000
+ARG USER=ecomuser
+RUN groupadd --gid $GID $USER \
+    && useradd --home-dir /home/$USER --create-home --uid $GID \
+        --gid $GID --shell /bin/sh --skel /dev/null $USER
+
+ENV EXPOSE_PORT 8080
+EXPOSE $EXPOSE_PORT
+ENV APP_HOME /usr/apps
+WORKDIR $APP_HOME
+RUN chown -R $GID:$USER $APP_HOME
+USER $USER
+RUN mkdir mappings && mkdir __files
+ARG AUTOMATION_DIR=MedlineAPIAutomation
+COPY $AUTOMATION_DIR/Wiremock/mappings/  mappings/
+COPY $AUTOMATION_DIR/Wiremock/__files/ __files/
+ENTRYPOINT exec java -jar wiremock-standalone.jar --verbose --enable-browser-proxying --root-dir $APP_HOME --global-response-templating
